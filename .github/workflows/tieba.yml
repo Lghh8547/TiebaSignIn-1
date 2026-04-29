@@ -3,7 +3,7 @@ name: Daily Tieba Sign-In
 on:
   workflow_dispatch:
   schedule:
-    - cron: '30 22 * * *'  # 北京时间 6:30 (UTC+8)
+    - cron: "0 22 * * *" # 北京时间 6:00 (UTC+8)
 
 jobs:
   signin:
@@ -16,9 +16,14 @@ jobs:
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '8'
-          cache: 'maven'  # 使用官方推荐的 Maven 依赖缓存
+          distribution: "zulu"
+          java-version: "8"
+          cache: "maven" # 使用官方推荐的 Maven 依赖缓存
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "24"
 
       - name: Build and execute
         env:
