@@ -367,25 +367,18 @@ try {
      */
     public boolean replyToPost(String tiebaName, String tid, String content) {
         try {
-            // 贴吧回复接口
             String replyUrl = "http://c.tieba.baidu.com/c/c/post/add";
             
-            // 构建请求参数
+            String signStr = "kw=" + tiebaName + "&tid=" + tid + "&content=" + content + "&tbs=" + tbs + "tiebaclient!!!";
+            String sign = Encryption.enCodeMd5(signStr);
+            
             StringBuilder params = new StringBuilder();
             params.append("kw=").append(URLEncoder.encode(tiebaName, "UTF-8"));
             params.append("&tid=").append(tid);
             params.append("&content=").append(URLEncoder.encode(content, "UTF-8"));
             params.append("&tbs=").append(tbs);
-            
-            // 生成签名
-            String signStr = params.toString() + "tiebaclient!!!";
-            String sign = Encryption.enCodeMd5(signStr);
             params.append("&sign=").append(sign);
-
-            // 发送POST请求
             JSONObject response = Request.post(replyUrl, params.toString());
-            
-            // 检查返回结果
             if (response != null && "0".equals(response.getString("error_code"))) {
                 return true;
             } else {
