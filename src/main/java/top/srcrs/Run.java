@@ -369,7 +369,7 @@ try {
         try {
             String replyUrl = "http://c.tieba.baidu.com/c/c/post/add";
             
-            String signStr = "kw=" + tiebaName + "&tid=" + tid + "&content=" + content + "&tbs=" + tbs + "tiebaclient!!!";
+            String signStr = "content=" + content + "kw=" + tiebaName + "tbs=" + tbs + "tid=" + tid + "tiebaclient!!!";
             String sign = Encryption.enCodeMd5(signStr);
             
             StringBuilder params = new StringBuilder();
