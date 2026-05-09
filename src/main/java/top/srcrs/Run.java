@@ -75,6 +75,11 @@ public class Run {
      */
     private static Integer followNum = 201;
 
+    /**
+     * 需要回复的帖子配置列表 (贴吧名 -> (帖子tid -> 回复内容列表))
+     */
+    private Map<String, Map<String, List<String>>> postConfig = new HashMap<>();
+
     public static void main(String[] args) {
         Cookie cookie = Cookie.getInstance();
         // 存入Cookie，以备使用
@@ -88,6 +93,11 @@ public class Run {
         run.runSign();
         LOGGER.info("共 {} 个贴吧 - 成功: {} - 失败: {} - {} ", followNum, success.size(), followNum - success.size(), failed);
         LOGGER.info("失效 {} 个贴吧: {} ", invalid.size(), invalid);
+        
+        // 执行帖子回复
+        run.initPostConfig();
+        run.replyPosts();
+        
         if (args.length == 2) {
             run.send(args[1]);
         }
@@ -271,6 +281,122 @@ try {
 
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * 帖子配置
+     * @author srcrs
+     * @Time 2026-05-09
+     */
+    public void initPostConfig() {
+         postConfig.put("崩坏3rd", new HashMap<String, List<String>>() {{
+             put("10701596086", Collections.singletonList(
+                     "日常打卡，祝大家好运！"
+             ));
+         }});
+         postConfig.put("火影忍者", new HashMap<String, List<String>>() {{
+             put("10701607087", Collections.singletonList(
+                     "日常打卡，祝大家好运！"
+             ));
+         }});
+        
+        LOGGER.info("帖子回复配置初始化完成，共配置 {} 个帖子", postConfig.size());
+    }
+
+    /**
+     * 执行帖子回复操作
+     * @author srcrs
+     * @Time 2026-05-09
+     */
+    public void replyPosts() {
+        if (postConfig.isEmpty()) {
+            LOGGER.info("未配置任何帖子回复任务");
+            return;
+        }
+
+        LOGGER.info("-----开始执行帖子回复-----");
+        int successCount = 0;
+        int failCount = 0;
+
+        for (Map.Entry<String, Map<String, List<String>>> entry : postConfig.entrySet()) {
+            String tiebaName = entry.getKey();
+            Map<String, List<String>> posts = entry.getValue();
+
+            for (Map.Entry<String, List<String>> postEntry : posts.entrySet()) {
+                String tid = postEntry.getKey();
+                List<String> contents = postEntry.getValue();
+
+                LOGGER.info("正在处理贴吧: {}, 帖子tid: {}", tiebaName, tid);
+
+                // 限制最多回复3条
+                int maxReplies = Math.min(contents.size(), 3);
+                
+                for (int i = 0; i < maxReplies; i++) {
+                    String content = contents.get(i);
+                    boolean result = replyToPost(tiebaName, tid, content);
+                    
+                    if (result) {
+                        successCount++;
+                        LOGGER.info("回复成功 [{}]: {}", tid, content);
+                    } else {
+                        failCount++;
+                        LOGGER.warn("回复失败 [{}]: {}", tid, content);
+                    }
+
+                    // 每条回复之间随机延迟 1-3 秒，避免触发风控
+                    try {
+                        int randomDelay = new Random().nextInt(2000) + 1000;
+                        LOGGER.info("等待 {} 毫秒", randomDelay);
+                        TimeUnit.MILLISECONDS.sleep(randomDelay);
+                    } catch (InterruptedException e) {
+                        LOGGER.error("延迟被中断: " + e);
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }
+        }
+
+        LOGGER.info("-----帖子回复完成----- 成功: {}, 失败: {}", successCount, failCount);
+    }
+
+    /**
+     * 向指定帖子回复内容
+     * @author srcrs
+     * @Time 2026-05-09
+     */
+    public boolean replyToPost(String tiebaName, String tid, String content) {
+        try {
+            // 贴吧回复接口
+            String replyUrl = "http://c.tieba.baidu.com/c/c/post/add";
+            
+            // 构建请求参数
+            StringBuilder params = new StringBuilder();
+            params.append("kw=").append(URLEncoder.encode(tiebaName, "UTF-8"));
+            params.append("&tid=").append(tid);
+            params.append("&content=").append(URLEncoder.encode(content, "UTF-8"));
+            params.append("&tbs=").append(tbs);
+            
+            // 生成签名
+            String signStr = params.toString() + "tiebaclient!!!";
+            String sign = Encryption.enCodeMd5(signStr);
+            params.append("&sign=").append(sign);
+
+            // 发送POST请求
+            JSONObject response = Request.post(replyUrl, params.toString());
+            
+            // 检查返回结果
+            if (response != null && "0".equals(response.getString("error_code"))) {
+                return true;
+            } else {
+                LOGGER.warn("回复失败，错误码: {}, 错误信息: {}", 
+                    response != null ? response.getString("error_code") : "null",
+                    response != null ? response.getString("error_msg") : "null");
+                return false;
+            }
+        } catch (Exception e) {
+            LOGGER.error("回复帖子时发生异常: " + e);
+            return false;
         }
     }
 }
