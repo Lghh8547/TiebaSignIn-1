@@ -290,13 +290,8 @@ try {
      * @Time 2026-05-09
      */
     public void initPostConfig() {
-         postConfig.put("崩坏3rd", new HashMap<String, List<String>>() {{
-             put("10701596086", Collections.singletonList(
-                     "日常打卡，祝大家好运！"
-             ));
-         }});
-         postConfig.put("火影忍者", new HashMap<String, List<String>>() {{
-             put("10701607087", Collections.singletonList(
+         postConfig.put("java", new HashMap<String, List<String>>() {{
+             put("9400338048", Collections.singletonList(
                      "日常打卡，祝大家好运！"
              ));
          }});
